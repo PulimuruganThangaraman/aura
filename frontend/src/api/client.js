@@ -4,6 +4,10 @@ let rawBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api
 if (rawBaseUrl && !rawBaseUrl.startsWith('http://') && !rawBaseUrl.startsWith('https://')) {
   rawBaseUrl = `https://${rawBaseUrl}`;
 }
+rawBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+if (!rawBaseUrl.endsWith('/api/v1')) {
+  rawBaseUrl = `${rawBaseUrl}/api/v1`;
+}
 const API_BASE_URL = rawBaseUrl;
 
 const apiClient = axios.create({
