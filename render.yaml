@@ -26,5 +26,5 @@ services:
         fromService:
           type: web
           name: aura-backend
-          property: url
+          property: host
         suffix: /api/v1
