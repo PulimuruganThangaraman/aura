@@ -17,6 +17,11 @@ class ApiEndpoints {
   static const String verifyQr = '/mobile/tasks/verify-qr';
   static String completeTask(int id) => '/mobile/tasks/$id/complete';
 
+  // Mobile – Admin & Companies
+  static const String adminStats = '/mobile/admin/stats';
+  static const String adminProfessionals = '/mobile/admin/professionals';
+  static const String companies = '/mobile/companies';
+
   // Attendance
   static const String attendance = '/mobile/attendance';
 }

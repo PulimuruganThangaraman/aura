@@ -7,6 +7,8 @@ class UserModel {
   final String? dob;
   final String? gender;
   final String role;
+  final int? companyId;
+  final String? companyName;
   final bool isActive;
   final List<String> skills;
 
@@ -19,11 +21,14 @@ class UserModel {
     this.dob,
     this.gender,
     required this.role,
+    this.companyId,
+    this.companyName,
     required this.isActive,
     this.skills = const [],
   });
 
-  String get fullName => '$firstName $lastName';
+  String get fullName => '$firstName $lastName'.trim();
+  bool get isAdmin => role.toLowerCase().contains('admin');
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -34,7 +39,9 @@ class UserModel {
       phone: json['phone'],
       dob: json['dob'],
       gender: json['gender'],
-      role: json['role'] ?? 'professional',
+      role: json['role'] ?? 'Professional',
+      companyId: json['company_id'],
+      companyName: json['company_name'],
       isActive: json['is_active'] ?? true,
       skills: List<String>.from(json['skills'] ?? []),
     );
@@ -49,6 +56,8 @@ class UserModel {
     'dob': dob,
     'gender': gender,
     'role': role,
+    'company_id': companyId,
+    'company_name': companyName,
     'is_active': isActive,
     'skills': skills,
   };

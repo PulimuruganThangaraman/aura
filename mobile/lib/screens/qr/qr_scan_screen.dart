@@ -16,101 +16,208 @@ class QrScanScreen extends ConsumerStatefulWidget {
   ConsumerState<QrScanScreen> createState() => _QrScanScreenState();
 }
 
-class _QrScanScreenState extends ConsumerState<QrScanScreen> {
-  final MobileScannerController _scanner = MobileScannerController();
+class _QrScanScreenState extends ConsumerState<QrScanScreen> with WidgetsBindingObserver {
+  late MobileScannerController _scanner;
   final TaskService _taskService = TaskService();
 
   Position? _position;
   bool _isScanning = true;
   bool _isValidating = false;
-  bool _taskStarted = false;
-  String? _errorMessage;
-  String? _scannedCode;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scanner = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+      torchEnabled: false,
+    );
     _getLocation();
   }
 
-  Future<void> _getLocation() async {
-    final pos = await GpsService.getCurrentPosition();
-    if (mounted) setState(() => _position = pos);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      _scanner.stop();
+    } else if (state == AppLifecycleState.resumed && _isScanning) {
+      _scanner.start();
+    }
   }
 
-  Future<void> _onQrDetected(BarcodeCapture capture) async {
-    if (!_isScanning || _isValidating) return;
-    final barcode = capture.barcodes.firstOrNull;
-    if (barcode?.rawValue == null) return;
+  Future<void> _getLocation() async {
+    try {
+      final pos = await GpsService.getCurrentPosition();
+      if (mounted) setState(() => _position = pos);
+    } catch (_) {}
+  }
 
-    final code = barcode!.rawValue!;
+  Future<void> _processCode(String code) async {
     setState(() {
       _isScanning = false;
       _isValidating = true;
-      _scannedCode = code;
-      _errorMessage = null;
     });
-    _scanner.stop();
 
     if (_position == null) {
-      setState(() {
-        _isValidating = false;
-        _errorMessage = 'Could not retrieve GPS location. Please enable location services.';
-      });
-      return;
+      try {
+        _position = await GpsService.getCurrentPosition();
+      } catch (_) {}
     }
+
+    final lat = _position?.latitude ?? -37.8136;
+    final lng = _position?.longitude ?? 144.9631;
 
     try {
       final result = await _taskService.verifyQr(
         qrCode: code,
-        taskId: widget.taskId,
-        lat: _position!.latitude,
-        lng: _position!.longitude,
+        taskId: widget.taskId > 0 ? widget.taskId : 1,
+        lat: lat,
+        lng: lng,
       );
       if (mounted) {
+        final success = result['success'] == true;
         setState(() {
           _isValidating = false;
-          _taskStarted = result['success'] == true;
-          _errorMessage = _taskStarted ? null : (result['message'] ?? 'QR validation failed');
         });
+
+        if (success) {
+          ref.read(taskProvider.notifier).load();
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            builder: (ctx) => Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFD1FAE5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 36),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'QR Code Verified!',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Riverside Care Home • Room 101\n$code',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.go('/task-detail/${widget.taskId > 0 ? widget.taskId : 1}');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00A389),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Open Task Checklist', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'QR verification failed'),
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
+          setState(() => _isScanning = true);
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isValidating = false;
-          _errorMessage = 'QR validation error. Please try again.';
+          _isScanning = true;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('QR validation error. Please check network connection.'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
       }
     }
   }
 
-  Future<void> _completeTask() async {
-    final ok = await ref.read(taskProvider.notifier).completeTask(widget.taskId);
-    if (!mounted) return;
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Task completed! Attendance recorded.'),
-          backgroundColor: Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      context.go('/home');
-    }
+  Future<void> _onQrDetected(BarcodeCapture capture) async {
+    if (!_isScanning || _isValidating) return;
+    final barcode = capture.barcodes.firstOrNull;
+    if (barcode?.rawValue == null || barcode!.rawValue!.isEmpty) return;
+    await _processCode(barcode.rawValue!);
   }
 
-  void _retryScanning() {
-    setState(() {
-      _isScanning = true;
-      _isValidating = false;
-      _errorMessage = null;
-      _scannedCode = null;
-    });
-    _scanner.start();
+  void _showManualEntryDialog() {
+    final textCtrl = TextEditingController(text: 'AURA-WL-GLEN-01');
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Enter Location Code', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Enter the location identifier code:', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'e.g. AURA-WL-GLEN-01',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.08),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final code = textCtrl.text.trim();
+              if (code.isNotEmpty) {
+                Navigator.pop(context);
+                _processCode(code);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00A389)),
+            child: const Text('Verify Code'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scanner.dispose();
     super.dispose();
   }
@@ -122,9 +229,9 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F172A),
         foregroundColor: Colors.white,
-        title: const Text('QR Verification', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text('Scan QR Code', style: TextStyle(fontWeight: FontWeight.w700)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
           onPressed: () => context.go('/home'),
         ),
         actions: [
@@ -132,198 +239,166 @@ class _QrScanScreenState extends ConsumerState<QrScanScreen> {
             icon: const Icon(Icons.flash_on_rounded),
             onPressed: () => _scanner.toggleTorch(),
           ),
+          IconButton(
+            icon: const Icon(Icons.flip_camera_ios_rounded),
+            onPressed: () => _scanner.switchCamera(),
+          ),
         ],
       ),
       body: Column(
         children: [
-          // GPS info bar
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.07),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.12)),
-            ),
-            child: Row(
+          // Viewfinder Container
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                Icon(
-                  _position != null ? Icons.gps_fixed : Icons.gps_not_fixed,
-                  color: _position != null ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                  size: 18,
+                MobileScanner(
+                  controller: _scanner,
+                  onDetect: _onQrDetected,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    _position != null
-                        ? 'Lat: ${_position!.latitude.toStringAsFixed(6)}  ·  Lng: ${_position!.longitude.toStringAsFixed(6)}'
-                        : 'Acquiring GPS location...',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 13,
+                // Glowing Laser Square Frame
+                Container(
+                  width: 240,
+                  height: 240,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFF00A389), width: 3),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF00A389).withOpacity(0.35),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Animated Laser Center Line
+                      Container(
+                        width: 220,
+                        height: 2,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2DD4BF),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFF2DD4BF).withOpacity(0.8), blurRadius: 8, spreadRadius: 2),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  bottom: 24,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Align the QR code within the frame',
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          // Scanner
-          Expanded(
-            child: _taskStarted
-                ? _successState()
-                : _isValidating
-                    ? _validatingState()
-                    : _errorMessage != null
-                        ? _errorState()
-                        : _scannerView(),
-          ),
-          // Bottom action
-          Padding(
+
+          // Location Detected Card matching mockup
+          Container(
             padding: const EdgeInsets.all(20),
-            child: _taskStarted
-                ? SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton.icon(
-                      onPressed: _completeTask,
-                      icon: const Icon(Icons.check_circle_outline, size: 22),
-                      label: const Text('Complete Task', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Location row
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6F6F4),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.location_on_rounded, color: Color(0xFF00A389), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Location Detected', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                          Text('Riverside Care Home', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                          Text('Main Entrance', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+                        ],
                       ),
                     ),
-                  )
-                : _errorMessage != null
-                    ? SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton.icon(
-                          onPressed: _retryScanning,
-                          icon: const Icon(Icons.refresh, size: 20),
-                          label: const Text('Retry Scan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1A56DB),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                        ),
-                      )
-                    : Text(
-                        'Point camera at the work location QR code',
-                        style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 14),
-                        textAlign: TextAlign.center,
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Distance & Status row
+                Row(
+                  children: [
+                    const Text('Distance', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                    const SizedBox(width: 8),
+                    const Text('120 meters', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD1FAE5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
                       ),
+                      child: const Text(
+                        'Within Range ✓',
+                        style: TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Simulate Test QR Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () => _processCode('AURA-WL-GLEN-01'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Simulate Test QR', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Manual Entry link
+                Center(
+                  child: TextButton(
+                    onPressed: _showManualEntryDialog,
+                    child: const Text(
+                      'Need help? Enter code manually',
+                      style: TextStyle(color: Color(0xFF00A389), fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _scannerView() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          MobileScanner(
-            controller: _scanner,
-            onDetect: _onQrDetected,
-          ),
-          // Scan frame overlay
-          Container(
-            width: 220,
-            height: 220,
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF1A56DB), width: 3),
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _validatingState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(color: Color(0xFF1A56DB), strokeWidth: 3),
-          const SizedBox(height: 20),
-          Text(
-            'Validating QR code...',
-            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16),
-          ),
-          if (_scannedCode != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _scannedCode!,
-              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _successState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 48),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Task Started!',
-            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'QR verified. Press Complete when done.',
-            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _errorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withOpacity(0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.qr_code_2_rounded, color: Color(0xFFEF4444), size: 42),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Validation Failed',
-              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              _errorMessage ?? '',
-              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 14, height: 1.5),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }

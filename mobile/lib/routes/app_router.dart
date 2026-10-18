@@ -7,7 +7,10 @@ import '../screens/auth/landing_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/signup_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
+import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/tasks/task_details_screen.dart';
+import '../screens/admin/admin_dashboard_screen.dart';
 import '../screens/notifications/notification_screen.dart';
 import '../screens/qr/qr_scan_screen.dart';
 import '../screens/attendance/attendance_screen.dart';
@@ -17,39 +20,55 @@ import '../screens/settings/settings_screen.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isAuth = authState.isAuthenticated;
-      final isAuthRoute = state.fullPath?.startsWith('/auth') ?? false;
-      final isSplash = state.fullPath == '/splash';
+      final location = state.matchedLocation.isNotEmpty ? state.matchedLocation : (state.uri.path);
+      final isAuthRoute = location.startsWith('/auth');
+      final isSplash = location == '/splash';
 
       if (isSplash) return null;
-      if (!isAuth && !isAuthRoute) return '/auth/landing';
-      if (isAuth && isAuthRoute) return '/home';
+      if (isAuthRoute) return null;
+      if (!isAuth) return '/auth/landing';
       return null;
     },
     routes: [
+      GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(
-        path: '/auth',
-        redirect: (_, __) => '/auth/landing',
-        routes: [
-          GoRoute(path: 'landing', builder: (_, __) => const LandingScreen()),
-          GoRoute(path: 'login', builder: (_, __) => const LoginScreen()),
-          GoRoute(path: 'signup', builder: (_, __) => const SignupScreen()),
-          GoRoute(path: 'forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
-        ],
+        path: '/auth/landing',
+        builder: (_, __) => const LandingScreen(),
       ),
+      GoRoute(
+        path: '/auth/login',
+        builder: (_, __) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/auth/signup',
+        builder: (_, __) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/auth/forgot-password',
+        builder: (_, __) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+      GoRoute(
+        path: '/task-detail/:taskId',
+        builder: (_, state) {
+          final taskId = int.tryParse(state.pathParameters['taskId'] ?? '1') ?? 1;
+          return TaskDetailsScreen(taskId: taskId);
+        },
+      ),
+      GoRoute(path: '/admin', builder: (_, __) => const AdminDashboardScreen()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationScreen()),
       GoRoute(
         path: '/qr-scan/:taskId',
         builder: (_, state) {
-          final taskId = int.parse(state.pathParameters['taskId']!);
+          final taskId = int.tryParse(state.pathParameters['taskId'] ?? '0') ?? 0;
           return QrScanScreen(taskId: taskId);
         },
       ),

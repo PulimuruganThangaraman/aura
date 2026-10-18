@@ -1,241 +1,191 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/task_provider.dart';
-import '../../models/notification.dart' as model;
-import '../../widgets/custom_drawer.dart';
+import '../../config/theme.dart';
 
-class NotificationScreen extends ConsumerStatefulWidget {
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
   @override
-  ConsumerState<NotificationScreen> createState() => _NotificationScreenState();
+  State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends ConsumerState<NotificationScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(notificationProvider.notifier).load();
-    });
-  }
+class _NotificationScreenState extends State<NotificationScreen> {
+  String _selectedCategory = 'All';
+  final List<String> _categories = ['All', 'Shifts', 'Tasks', 'System'];
+
+  final List<Map<String, dynamic>> _mockNotifs = const [
+    {
+      'title': 'Upcoming Shift',
+      'body': 'Your shift starts in 15 minutes\nRiverside Care Home',
+      'time': '5m ago',
+      'category': 'Shifts',
+      'icon': Icons.schedule_rounded,
+      'color': Color(0xFF2563EB),
+      'bgColor': Color(0xFFEFF6FF),
+    },
+    {
+      'title': 'Task Assigned',
+      'body': 'Personal Care Assistance\nToday 10:00 AM',
+      'time': '2h ago',
+      'category': 'Tasks',
+      'icon': Icons.notifications_active_rounded,
+      'color': Color(0xFFEF4444),
+      'bgColor': Color(0xFFFEE2E2),
+    },
+    {
+      'title': 'Shift Reminder',
+      'body': 'Please check-in at the location',
+      'time': '1d ago',
+      'category': 'Shifts',
+      'icon': Icons.notifications_none_rounded,
+      'color': Color(0xFFEA580C),
+      'bgColor': Color(0xFFFFF7ED),
+    },
+    {
+      'title': 'Compliance Update',
+      'body': 'Your NDIS document has been verified',
+      'time': '2d ago',
+      'category': 'System',
+      'icon': Icons.verified_user_rounded,
+      'color': Color(0xFF059669),
+      'bgColor': Color(0xFFECFDF5),
+    },
+    {
+      'title': 'New Message',
+      'body': 'Message from your coordinator',
+      'time': '2d ago',
+      'category': 'System',
+      'icon': Icons.chat_bubble_outline_rounded,
+      'color': Color(0xFF0284C7),
+      'bgColor': Color(0xFFE0F2FE),
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final notifAsync = ref.watch(notificationProvider);
+    final isDark = AppTheme.isDark(context);
+    final filteredList = _selectedCategory == 'All'
+        ? _mockNotifs
+        : _mockNotifs.where((n) => n['category'] == _selectedCategory).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
-      drawer: const CustomDrawer(currentRoute: '/notifications'),
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A56DB),
-        foregroundColor: Colors.white,
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w700)),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+        backgroundColor: isDark ? AppTheme.slate900 : const Color(0xFF00A389),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+          onPressed: () => context.go('/dashboard'),
         ),
+        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
       ),
-      body: notifAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF1A56DB))),
-        error: (_, __) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 52, color: Colors.red),
-              const SizedBox(height: 12),
-              const Text('Failed to load notifications'),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => ref.read(notificationProvider.notifier).load(),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-        data: (notifications) => notifications.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.notifications_none_rounded, size: 72, color: Colors.grey.shade400),
-                    const SizedBox(height: 16),
-                    Text('No notifications', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
-                    const SizedBox(height: 6),
-                    Text('You have no pending task assignments',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
-                  ],
-                ),
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: notifications.length,
-                itemBuilder: (_, i) => _NotificationCard(notification: notifications[i]),
-              ),
-      ),
-    );
-  }
-}
-
-class _NotificationCard extends ConsumerWidget {
-  final model.NotificationModel notification;
-
-  const _NotificationCard({required this.notification});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notif = notification;
-    final isPending = notif.status == 'pending';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isPending ? const Color(0xFF1A56DB).withOpacity(0.2) : Colors.transparent,
-        ),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A56DB).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.assignment_outlined, color: Color(0xFF1A56DB), size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notif.title,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Color(0xFF0F172A)),
+      body: Column(
+        children: [
+          // Category Filter Chips
+          Container(
+            color: isDark ? AppTheme.slate800 : Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: _categories.map((cat) {
+                final isSelected = _selectedCategory == cat;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCategory = cat),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF00A389)
+                          : (isDark ? AppTheme.slate900 : const Color(0xFFF1F5F9)),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF00A389)
+                            : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                       ),
-                      Text(
-                        notif.createdAt,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    ),
+                    child: Text(
+                      cat,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          // Notifications List
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: filteredList.length,
+              itemBuilder: (context, index) {
+                final notif = filteredList[index];
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBg(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.border(context)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                        blurRadius: 6,
+                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),
-                ),
-                if (!notif.isRead)
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1A56DB),
-                      shape: BoxShape.circle,
-                    ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isDark ? (notif['color'] as Color).withValues(alpha: 0.2) : notif['bgColor'],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(notif['icon'], color: notif['color'], size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  notif['title'],
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.text(context)),
+                                ),
+                                Text(
+                                  notif['time'],
+                                  style: TextStyle(fontSize: 10, color: AppTheme.subtext(context), fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              notif['body'],
+                              style: TextStyle(fontSize: 12, color: AppTheme.subtext(context), height: 1.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-              ],
+                );
+              },
             ),
-            const SizedBox(height: 12),
-            Text(notif.message, style: const TextStyle(color: Color(0xFF475569), fontSize: 14, height: 1.4)),
-            if (notif.category != null || notif.location != null) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: [
-                  if (notif.category != null) _chip(Icons.category_outlined, notif.category!),
-                  if (notif.location != null) _chip(Icons.location_on_outlined, notif.location!),
-                  if (notif.startTime != null)
-                    _chip(Icons.access_time, '${notif.startTime} – ${notif.endTime ?? '--'}'),
-                ],
-              ),
-            ],
-            if (isPending && notif.taskId != null) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final ok = await ref
-                            .read(notificationProvider.notifier)
-                            .decline(notif.taskId!);
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(ok ? 'Task declined' : 'Failed to decline'),
-                            backgroundColor: ok ? Colors.grey : const Color(0xFFEF4444),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.close, size: 16),
-                      label: const Text('Decline'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFEF4444),
-                        side: const BorderSide(color: Color(0xFFEF4444)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        minimumSize: const Size(0, 40),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final ok = await ref
-                            .read(notificationProvider.notifier)
-                            .accept(notif.taskId!);
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(ok ? 'Task accepted! Check Home.' : 'Failed to accept'),
-                            backgroundColor: ok ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        if (ok && context.mounted) context.go('/home');
-                      },
-                      icon: const Icon(Icons.check, size: 16),
-                      label: const Text('Accept'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        minimumSize: const Size(0, 40),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _chip(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: const Color(0xFF94A3B8)),
-          const SizedBox(width: 4),
-          Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+          ),
         ],
       ),
     );

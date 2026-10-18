@@ -33,7 +33,7 @@ function MainContent() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardPage />;
+        return <DashboardPage onNavigate={setActiveTab} />;
       case 'companies':
         return <CompaniesPage />;
       case 'system-accounts':
@@ -57,12 +57,12 @@ function MainContent() {
       case 'profile':
         return <ProfilePage />;
       default:
-        return <DashboardPage />;
+        return <DashboardPage onNavigate={setActiveTab} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100 font-sans">
+    <div className="min-h-screen flex flex-col bg-slate-50/70 font-sans text-slate-900 antialiased selection:bg-teal-500 selection:text-white">
       <Navbar
         onNavigate={setActiveTab}
         activeTab={activeTab}
@@ -77,8 +77,10 @@ function MainContent() {
           closeMobile={() => setIsMobileSidebarOpen(false)}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          {renderTabContent()}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-6 bg-slate-50/70">
+          <div className="w-full">
+            {renderTabContent()}
+          </div>
         </main>
       </div>
     </div>

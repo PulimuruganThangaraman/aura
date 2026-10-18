@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-import '../../config/app_config.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -21,28 +20,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
     _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: const Interval(0, 0.6)),
     );
-    _scaleAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
+    _scaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
     _controller.forward();
     _checkAuth();
   }
 
   Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
-    final success = await ref.read(authProvider.notifier).tryAutoLogin();
-    if (!mounted) return;
-    if (success) {
-      context.go('/home');
-    } else {
-      context.go('/auth/landing');
+    try {
+      final success = await ref.read(authProvider.notifier).tryAutoLogin();
+      if (!mounted) return;
+      if (success) {
+        context.go('/dashboard');
+      } else {
+        context.go('/auth/landing');
+      }
+    } catch (_) {
+      if (mounted) context.go('/auth/landing');
     }
   }
 
@@ -58,9 +61,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A56DB), Color(0xFF0EA5E9)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF042F2C), Color(0xFF064E43), Color(0xFF0D7E6B)],
           ),
         ),
         child: Center(
@@ -75,47 +78,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 90,
-                        height: 90,
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: const Color(0xFF00A389).withOpacity(0.25),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: const Color(0xFF2DD4BF).withOpacity(0.5),
                             width: 1.5,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.link_rounded,
-                          color: Colors.white,
-                          size: 48,
+                        child: const Center(
+                          child: Icon(
+                            Icons.all_inclusive_rounded,
+                            color: Color(0xFF2DD4BF),
+                            size: 44,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 18),
                       const Text(
-                        AppConfig.appName,
+                        'AuraLinks',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Enterprise Workforce Platform',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 60),
-                      SizedBox(
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Enterprise Care Management',
+                        style: TextStyle(
+                          color: Color(0xFF99F6E4),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      const SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Color(0xFF2DD4BF),
                           strokeWidth: 2.5,
                         ),
                       ),

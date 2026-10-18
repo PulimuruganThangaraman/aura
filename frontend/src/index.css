@@ -1,67 +1,99 @@
 @import "tailwindcss";
 
-:root {
-  --bg-primary: #f8fafc;
-  --bg-card: #ffffff;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --border-color: #e2e8f0;
-  --accent-color: #2563eb;
-  --accent-hover: #1d4ed8;
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #94a3b8;
-  --sidebar-active: #3b82f6;
-  --tomato-red: #ef4444;
+@layer base {
+  :root {
+    --brand-teal: #00A389;
+    --brand-teal-hover: #008771;
+    --brand-teal-light: #E6F6F3;
+    --brand-teal-dark: #005F4F;
+    --brand-blue: #0284C7;
+    --brand-navy: #0F172A;
+    --brand-slate: #1E293B;
+
+    --bg-primary: #F8FAFC;
+    --bg-secondary: #F1F5F9;
+    --bg-card: #FFFFFF;
+
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --text-subtle: #94A3B8;
+
+    --border-color: #E2E8F0;
+    --border-focus: #00A389;
+
+    --status-active-bg: #ECFDF5;
+    --status-active-text: #059669;
+    --status-active-border: #A7F3D0;
+
+    --status-pending-bg: #FFFBEB;
+    --status-pending-text: #D97706;
+    --status-pending-border: #FDE68A;
+
+    --status-inactive-bg: #FEF2F2;
+    --status-inactive-text: #DC2626;
+    --status-inactive-border: #FECACA;
+  }
+
+  *, ::before, ::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
-*, ::before, ::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background-color: var(--bg-primary);
-  color: var(--text-main);
-  -webkit-font-smoothing: antialiased;
-}
-
-
-/* Custom Scrollbar */
+/* Custom ShiftCare Styled Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #CBD5E1;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #94A3B8;
 }
 
-/* Inactive Row Highlight - Tomato Color as per specification */
+/* Inactive Row / Tomato Red Highlight */
 .row-inactive {
-  background-color: #fef2f2 !important;
-  color: #b91c1c !important;
+  background-color: #FEF2F2 !important;
+  color: #B91C1C !important;
 }
 
 .badge-tomato {
-  background-color: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fca5a5;
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
 }
 
 /* Modal Overlay */
 .modal-overlay {
-  background-color: rgba(15, 23, 42, 0.6);
+  background-color: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
 }
 
-/* Print Styles */
+/* ShiftCare Buttons & Utilities */
+.btn-shiftcare-primary {
+  background-color: #00A389;
+  color: #ffffff;
+  transition: all 0.15s ease-in-out;
+}
+.btn-shiftcare-primary:hover {
+  background-color: #008771;
+  box-shadow: 0 4px 12px rgba(0, 163, 137, 0.25);
+}
+
+/* Print Styles for QR Codes & Reports */
 @media print {
   body * {
     visibility: hidden;
@@ -74,5 +106,9 @@ body {
     left: 0;
     top: 0;
     width: 100%;
+    background: white;
+  }
+  .no-print {
+    display: none !important;
   }
 }

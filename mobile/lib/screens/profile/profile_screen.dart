@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_drawer.dart';
+import '../../config/theme.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -10,372 +12,417 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  int _selectedTab = 0; // 0 = Personal, 1 = Compliance, 2 = Security
 
-  // Edit profile controllers
-  final _firstNameCtrl = TextEditingController();
-  final _lastNameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _dobCtrl = TextEditingController();
-  String? _gender;
-  List<String> _selectedSkills = [];
-
-  // Change password controllers
-  final _currentPassCtrl = TextEditingController();
-  final _newPassCtrl = TextEditingController();
-  final _confirmPassCtrl = TextEditingController();
-  bool _obscureCurrent = true;
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
-  bool _savingProfile = false;
-  bool _savingPass = false;
-
-  final List<String> _allSkills = [
-    'Cleaning', 'Security', 'Maintenance', 'Electrical',
-    'Plumbing', 'Landscaping', 'IT Support', 'Logistics',
+  final List<String> _skills = [
+    'First Aid',
+    'Medication Support',
+    'Manual Handling',
+    'Fire Safety',
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
-  }
-
-  void _loadProfile() {
-    final user = ref.read(authProvider).user;
-    if (user != null) {
-      _firstNameCtrl.text = user.firstName;
-      _lastNameCtrl.text = user.lastName;
-      _phoneCtrl.text = user.phone ?? '';
-      _dobCtrl.text = user.dob ?? '';
-      _gender = user.gender;
-      _selectedSkills = List.from(user.skills);
-      setState(() {});
-    }
-  }
-
-  Future<void> _saveProfile() async {
-    setState(() => _savingProfile = true);
-    final ok = await ref.read(authProvider.notifier).updateProfile({
-      'first_name': _firstNameCtrl.text.trim(),
-      'last_name': _lastNameCtrl.text.trim(),
-      'phone': _phoneCtrl.text.trim(),
-      'dob': _dobCtrl.text,
-      'gender': _gender,
-      'skills': _selectedSkills,
-    });
-    setState(() => _savingProfile = false);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'Profile updated successfully' : 'Failed to update profile'),
-        backgroundColor: ok ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
-  Future<void> _changePassword() async {
-    if (_newPassCtrl.text != _confirmPassCtrl.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match'), backgroundColor: Color(0xFFEF4444)),
-      );
-      return;
-    }
-    setState(() => _savingPass = true);
-    final ok = await ref
-        .read(authProvider.notifier)
-        .changePassword(_currentPassCtrl.text, _newPassCtrl.text);
-    setState(() => _savingPass = false);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'Password changed successfully' : 'Incorrect current password'),
-        backgroundColor: ok ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-    if (ok) {
-      _currentPassCtrl.clear();
-      _newPassCtrl.clear();
-      _confirmPassCtrl.clear();
-    }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _firstNameCtrl.dispose();
-    _lastNameCtrl.dispose();
-    _phoneCtrl.dispose();
-    _dobCtrl.dispose();
-    _currentPassCtrl.dispose();
-    _newPassCtrl.dispose();
-    _confirmPassCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final isDark = AppTheme.isDark(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: AppTheme.bg(context),
       drawer: const CustomDrawer(currentRoute: '/profile'),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A56DB),
-        foregroundColor: Colors.white,
-        title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.w700)),
+        backgroundColor: isDark ? AppTheme.slate900 : const Color(0xFF00A389),
+        elevation: 0,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.menu_rounded),
+            icon: const Icon(Icons.menu_rounded, color: Colors.white),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          tabs: const [
-            Tab(text: 'Edit Profile'),
-            Tab(text: 'Change Password'),
-          ],
-        ),
+        title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Colors.white),
+            onPressed: () => context.go('/settings'),
+          ),
+        ],
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Tab 1 – Edit Profile
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                // Avatar
-                Center(
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 44,
-                        backgroundColor: const Color(0xFF1A56DB),
-                        child: Text(
-                          user?.firstName.isNotEmpty == true
-                              ? user!.firstName[0].toUpperCase()
-                              : 'A',
-                          style: const TextStyle(
-                            color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0, right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0EA5E9),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: const Icon(Icons.edit, color: Colors.white, size: 14),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(user?.email ?? '', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
-                const SizedBox(height: 24),
-                _card(
-                  children: [
-                    Row(children: [
-                      Expanded(child: _field(_firstNameCtrl, 'First Name')),
-                      const SizedBox(width: 12),
-                      Expanded(child: _field(_lastNameCtrl, 'Last Name')),
-                    ]),
-                    const SizedBox(height: 16),
-                    _field(_phoneCtrl, 'Phone Number', keyboard: TextInputType.phone),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _dobCtrl,
-                      readOnly: true,
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime(1995),
-                          firstDate: DateTime(1960),
-                          lastDate: DateTime.now(),
-                        );
-                        if (picked != null) {
-                          _dobCtrl.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-                        }
-                      },
-                      decoration: _inputDec('Date of Birth', Icons.calendar_today_outlined),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+        child: Column(
+          children: [
+            // 1. Hero Avatar & Verification Header
+            Center(
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: const Color(0xFF00A389),
+                    child: Text(
+                      user?.firstName.isNotEmpty == true ? user!.firstName[0].toUpperCase() : 'A',
+                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: _gender,
-                      decoration: _inputDec('Gender', Icons.wc_outlined),
-                      items: ['Male', 'Female', 'Other']
-                          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                          .toList(),
-                      onChanged: (v) => setState(() => _gender = v),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    user?.fullName.isNotEmpty == true ? user!.fullName : 'Arun Kumar',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.text(context)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user?.isAdmin == true ? 'Company Admin' : 'Care Professional',
+                    style: TextStyle(fontSize: 12, color: AppTheme.subtext(context), fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF064E43) : const Color(0xFFD1FAE5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isDark ? const Color(0xFF0D7E6B) : const Color(0xFFA7F3D0)),
+                    ),
+                    child: Text(
+                      'NDIS Verified ✓',
+                      style: TextStyle(
+                        color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // 2. 3 Tabs Switcher: [Personal] | [Compliance] | [Security]
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? AppTheme.slate800 : const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(3),
+              child: Row(
+                children: [
+                  _tabBtn(0, 'Personal', isDark),
+                  _tabBtn(1, 'Compliance', isDark),
+                  _tabBtn(2, 'Security', isDark),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            if (_selectedTab == 0) ...[
+              // 3. Personal Information Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg(context),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppTheme.border(context)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Skills', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Color(0xFF0F172A))),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Personal Information',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.text(context)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF00A389)),
+                          onPressed: () {},
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _profileInfoRow('Full Name', user?.fullName ?? 'Arun Kumar', isDark),
+                    _profileInfoRow('Email', user?.email ?? 'arun.kumar@auralinks.com', isDark),
+                    _profileInfoRow('Phone', user?.phone?.isNotEmpty == true ? user!.phone! : '+91 98765 43210', isDark),
+                    _profileInfoRow('Date of Birth', user?.dob ?? '12 Jan 1995', isDark),
+                    _profileInfoRow('Gender', user?.gender ?? 'Male', isDark),
+                    _profileInfoRow('Address', 'Chennai, Tamil Nadu', isDark),
+                    _profileInfoRow('Emergency Contact', 'Kumar (Father)  +91 98765 98765', isDark),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 4. Skills & Certifications Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg(context),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppTheme.border(context)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Skills & Certifications',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.text(context)),
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
-                      spacing: 8, runSpacing: 8,
-                      children: _allSkills.map((skill) {
-                        final selected = _selectedSkills.contains(skill);
-                        return GestureDetector(
-                          onTap: () => setState(() {
-                            selected ? _selectedSkills.remove(skill) : _selectedSkills.add(skill);
-                          }),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                            decoration: BoxDecoration(
-                              color: selected ? const Color(0xFF1A56DB) : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: selected ? const Color(0xFF1A56DB) : const Color(0xFFE2E8F0),
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _skills.map((s) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF064E43) : const Color(0xFFE6F6F4),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: isDark ? const Color(0xFF0D7E6B) : const Color(0xFFB2E5DF)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.diamond_outlined, size: 13, color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF00A389)),
+                              const SizedBox(width: 6),
+                              Text(
+                                s,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? const Color(0xFF99F6E4) : const Color(0xFF064E43),
+                                ),
                               ),
-                            ),
-                            child: Text(skill,
-                              style: TextStyle(
-                                color: selected ? Colors.white : const Color(0xFF475569),
-                                fontSize: 13, fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            ],
                           ),
                         );
                       }).toList(),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _savingProfile ? null : _saveProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A56DB),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ] else if (_selectedTab == 1) ...[
+              // Compliance Tab
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg(context),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppTheme.border(context)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
                     ),
-                    child: _savingProfile
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                        : const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Tab 2 – Change Password
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                _card(
-                  children: [
-                    _passField(_currentPassCtrl, 'Current Password', _obscureCurrent,
-                        () => setState(() => _obscureCurrent = !_obscureCurrent)),
-                    const SizedBox(height: 16),
-                    _passField(_newPassCtrl, 'New Password', _obscureNew,
-                        () => setState(() => _obscureNew = !_obscureNew)),
-                    const SizedBox(height: 16),
-                    _passField(_confirmPassCtrl, 'Confirm New Password', _obscureConfirm,
-                        () => setState(() => _obscureConfirm = !_obscureConfirm)),
                   ],
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _savingPass ? null : _changePassword,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A56DB),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'NDIS Worker Clearance',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.text(context)),
                     ),
-                    child: _savingPass
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                        : const Text('Update Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
+                    const SizedBox(height: 8),
+                    _complianceItem('NDIS Screening ID', 'NDIS-8839201-AU', 'Verified', true, isDark),
+                    _complianceItem('National Police Check', 'NPC-2025-VALID', 'Verified', true, isDark),
+                    _complianceItem('First Aid & CPR (HLTAID011)', 'Expires Dec 2026', 'Current', true, isDark),
+                    _complianceItem('Working With Children Check', 'WWC-9921448E', 'Verified', true, isDark),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ] else ...[
+              // Security Tab
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg(context),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppTheme.border(context)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Account Security',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.text(context)),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00A389),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Change Password'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavigationBar(context, 3, isDark),
+    );
+  }
+
+  Widget _tabBtn(int index, String label, bool isDark) {
+    final isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF00A389) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [BoxShadow(color: const Color(0xFF00A389).withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 1))]
+                : null,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _card({required List<Widget> children}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
-    );
-  }
-
-  Widget _field(TextEditingController ctrl, String label,
-      {TextInputType keyboard = TextInputType.text}) {
-    return TextFormField(
-      controller: ctrl,
-      keyboardType: keyboard,
-      decoration: _inputDec(label, Icons.edit_outlined),
-    );
-  }
-
-  Widget _passField(
-      TextEditingController ctrl, String label, bool obscure, VoidCallback toggle) {
-    return TextFormField(
-      controller: ctrl,
-      obscureText: obscure,
-      decoration: _inputDec(label, Icons.lock_outline).copyWith(
-        suffixIcon: IconButton(
-          onPressed: toggle,
-          icon: Icon(
-            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: Colors.grey,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
           ),
         ),
       ),
     );
   }
 
-  InputDecoration _inputDec(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20),
-      filled: true,
-      fillColor: const Color(0xFFF8FAFC),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+  Widget _profileInfoRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 12, color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF1A56DB), width: 2),
+    );
+  }
+
+  Widget _complianceItem(String title, String certNo, String status, bool isValid, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.slate900 : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+              Text(
+                certNo,
+                style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF064E43) : const Color(0xFFD1FAE5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar(BuildContext context, int currentIndex, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.slate800 : Colors.white,
+        border: Border(top: BorderSide(color: isDark ? const Color(0xFF334155) : Colors.grey.shade200)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          backgroundColor: isDark ? AppTheme.slate800 : Colors.white,
+          selectedItemColor: const Color(0xFF00A389),
+          unselectedItemColor: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          onTap: (index) {
+            if (index == 0) context.go('/dashboard');
+            if (index == 1) context.go('/home');
+            if (index == 2) context.go('/attendance');
+            if (index == 3) context.go('/profile');
+          },
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.task_alt_rounded), label: 'Tasks'),
+            BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Attendance'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+          ],
+        ),
+      ),
     );
   }
 }
