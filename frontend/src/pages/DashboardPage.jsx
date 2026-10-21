@@ -134,9 +134,9 @@ export default function DashboardPage({ onNavigate }) {
               <h1 className="text-xl font-black text-slate-900 tracking-tight">
                 Super Admin Platform Monitor
               </h1>
-              <span className="text-[10px] font-bold px-2.5 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
-                ShiftCare Multi-Tenant Console
+              <span className="text-[10px] font-bold px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                AuraForcz Multi-Tenant Console
               </span>
               <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
                 Platform Executive
@@ -425,7 +425,7 @@ export default function DashboardPage({ onNavigate }) {
           <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black text-slate-900">ShiftCare Multi-Tenant Governance</h2>
+                <h2 className="text-sm font-black text-slate-900">AuraForcz Multi-Tenant Governance</h2>
                 <span className="text-xs font-bold text-teal-600">Enterprise Suite</span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">

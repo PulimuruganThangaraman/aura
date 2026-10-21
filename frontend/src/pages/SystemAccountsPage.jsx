@@ -179,8 +179,8 @@ export default function SystemAccountsPage() {
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Administrative & Supervisor Accounts
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200">
-              ShiftCare RBAC
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
+              AuraForcz RBAC
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -380,8 +380,8 @@ export default function SystemAccountsPage() {
                   </p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200 shrink-0">
-                ShiftCare RBAC
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200 shrink-0">
+                AuraForcz RBAC
               </span>
             </div>
 

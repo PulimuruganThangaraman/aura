@@ -578,7 +578,7 @@ export default function ProfilePage() {
                     <div className="flex items-center space-x-3">
                       <Smartphone className="w-5 h-5 text-slate-500" />
                       <div>
-                        <p className="font-bold text-slate-800">ShiftCare Mobile App (iOS / Android)</p>
+                        <p className="font-bold text-slate-800">AuraForcz Mobile App (iOS / Android)</p>
                         <p className="text-[10px] text-slate-400">Device ID: APP-8941 • Synced 2 hours ago</p>
                       </div>
                     </div>
@@ -602,7 +602,7 @@ export default function ProfilePage() {
             <div className="max-w-3xl space-y-6">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Notification & Roster Alert Preferences</h3>
-                <p className="text-xs text-slate-500">Configure how and when ShiftCare dispatches roster changes, SMS broadcasts, and compliance alerts.</p>
+                <p className="text-xs text-slate-500">Configure how and when AuraForcz dispatches roster changes, SMS broadcasts, and compliance alerts.</p>
               </div>
 
               <div className="border border-slate-200 rounded-2xl divide-y divide-slate-100 overflow-hidden text-xs">

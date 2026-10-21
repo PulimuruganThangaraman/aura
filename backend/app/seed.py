@@ -457,6 +457,21 @@ def seed_initial_data(db: Session, force_reseed: bool = False):
         company_admins.append(u)
 
     # Also add standard demo users
+    demo_comp_admin = db.query(User).filter(User.email == "ushanlokuge@msn.com").first()
+    if not demo_comp_admin and companies:
+        demo_comp_admin = User(
+            email="ushanlokuge@msn.com",
+            hashed_password=get_password_hash("123456"),
+            first_name="Don Ushan",
+            last_name="Lokuge",
+            phone="0435159335",
+            role="Company Admin",
+            is_active=True,
+            company_id=companies[0].id
+        )
+        db.add(demo_comp_admin)
+        db.commit()
+
     demo_prof_user = db.query(User).filter(User.email == "professional@auralinks.com").first()
     if not demo_prof_user:
         demo_prof_user = User(

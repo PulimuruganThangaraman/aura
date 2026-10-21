@@ -4,8 +4,9 @@ import {
   LayoutDashboard, Users, Building2, UserCheck, Briefcase, MapPin, Grid, 
   Clock, ListTodo, CalendarDays, FileText, ChevronDown, ChevronRight, 
   UserCog, Settings, Calendar, Layers, Shield, Sparkles, CheckSquare, Crown,
-  BriefcaseBusiness, CheckCircle2
+  BriefcaseBusiness, CheckCircle2, X
 } from 'lucide-react';
+import AuraLogo from './AuraLogo';
 
 export default function Sidebar({ activeTab, onNavigate, isMobileOpen, closeMobile }) {
   const { user } = useAuth();
@@ -58,6 +59,18 @@ export default function Sidebar({ activeTab, onNavigate, isMobileOpen, closeMobi
         transform transition-transform duration-200 ease-in-out
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
+        {/* Mobile Header with AuraLogo */}
+        <div className="flex md:hidden items-center justify-between p-3.5 border-b border-slate-800">
+          <AuraLogo className="w-7 h-7" textClassName="text-lg font-bold" theme="dark" />
+          <button 
+            onClick={closeMobile}
+            aria-label="Close sidebar"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
         <div className="p-3.5 overflow-y-auto space-y-4">
           
           {/* Active Role Portal Card */}

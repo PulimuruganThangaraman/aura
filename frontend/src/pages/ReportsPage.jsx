@@ -31,15 +31,15 @@ export default function ReportsPage() {
   };
 
   const handleExport = (format) => {
-    alert(`Exporting ShiftCare Audit & Compliance Report in ${format.toUpperCase()} format... Download started.`);
+    alert(`Exporting AuraForcz Audit & Compliance Report in ${format.toUpperCase()} format... Download started.`);
   };
 
   if (loading || !reportData) {
     return (
       <div className="flex items-center justify-center p-16">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-3 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs font-semibold text-slate-500">Generating ShiftCare Compliance Analytics...</p>
+          <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-xs font-semibold text-slate-500">Generating AuraForcz Compliance Analytics...</p>
         </div>
       </div>
     );

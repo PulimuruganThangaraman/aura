@@ -113,8 +113,8 @@ export default function DepartmentsPage() {
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Departments & Specialized Skills
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200">
-              ShiftCare Competencies
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
+              AuraForcz Competencies
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">

@@ -164,7 +164,7 @@ export function QRPrintModal({ isOpen, onClose, item, items, isBulk }) {
         </button>
 
         <h3 className="text-base font-black text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center justify-between no-print">
-          <span>ShiftCare QR Location Labels</span>
+          <span>AuraForcz QR Location Labels</span>
           <button
             onClick={handlePrint}
             className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl flex items-center space-x-1.5 shadow-sm cursor-pointer"
@@ -193,10 +193,10 @@ export function QRPrintModal({ isOpen, onClose, item, items, isBulk }) {
             {listToPrint.map((wl, idx) => (
               <div key={idx} className="bg-white border border-slate-300 rounded-2xl p-4 flex flex-col items-center text-center shadow-xs w-full">
                 <p className="text-xs font-bold text-slate-900 mb-0.5">{wl.name}</p>
-                <p className="text-[10px] text-slate-500 mb-2">{wl.location_name || "ShiftCare Facility"}</p>
+                <p className="text-[10px] text-slate-500 mb-2">{wl.location_name || "AuraForcz Facility"}</p>
                 
                 <div className={`border-2 border-slate-800 rounded-xl bg-white ${getDimensionClass()}`}>
-                  <QRCodeSVG value={wl.qr_code_data || "SHIFTCARE-WL-DEMO"} size={160} className="w-full h-full" />
+                  <QRCodeSVG value={wl.qr_code_data || "AURAFORCZ-WL-DEMO"} size={160} className="w-full h-full" />
                 </div>
 
                 <p className="text-[11px] font-mono font-bold text-teal-700 mt-2">{wl.qr_code_data}</p>

@@ -6,6 +6,7 @@ import {
   Sparkles, CheckCircle2, Shield
 } from 'lucide-react';
 import apiClient from '../api/client';
+import AuraLogo from './AuraLogo';
 
 export default function Navbar({ onNavigate, activeTab, toggleSidebar, onQuickAdd }) {
   const { user, logout } = useAuth();
@@ -66,23 +67,15 @@ export default function Navbar({ onNavigate, activeTab, toggleSidebar, onQuickAd
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center space-x-2.5 cursor-pointer" onClick={() => onNavigate('dashboard')}>
-          <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center text-white font-black text-sm shadow-xs tracking-tight">
-            <span>S</span>
-          </div>
-          <div className="hidden sm:flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-slate-900 tracking-tight text-base leading-none">
-                shift<span className="text-teal-600">care</span>
-              </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded border border-teal-200/60 leading-none">
-                Aura Edition
-              </span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-medium leading-tight">
-              Care & Roster Management
-            </span>
-          </div>
+        <div 
+          className="flex items-center space-x-2.5 cursor-pointer group" 
+          onClick={() => onNavigate('dashboard')}
+          title="AuraForcz Overview"
+        >
+          <AuraLogo className="w-8 h-8" textClassName="text-xl font-extrabold" theme="light" />
+          <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 rounded-full border border-indigo-200/60 leading-none">
+            Enterprise
+          </span>
         </div>
       </div>
 

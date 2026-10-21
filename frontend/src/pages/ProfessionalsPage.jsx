@@ -244,8 +244,8 @@ export default function ProfessionalsPage() {
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Support Workers & Care Professionals
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200">
-              ShiftCare Workforce
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
+              AuraForcz Workforce
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -464,11 +464,11 @@ export default function ProfessionalsPage() {
                   {editingPro ? "Edit Care Professional Profile" : "Add Care Professional"}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Fill in the complete certified profile for ShiftCare roster assignments.
+                  Fill in the complete certified profile for AuraForcz roster assignments.
                 </p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full border border-teal-200">
-                ShiftCare Workforce
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">
+                AuraForcz Workforce
               </span>
             </div>
 
